@@ -1,0 +1,42 @@
+version: '3.4'
+services:
+   # run local server for manual test
+  test:
+    build:
+      context: ..
+    hostname: local_test
+    container_name: local_test
+    ports:
+      - "8088:8088"
+    env_file:
+      - test.env
+    healthcheck:
+      test: ["CMD", "curl", "localhost:8088/health"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+    depends_on:
+      - postgresql
+      - flyway
+
+   # test dependencies
+  postgresql:
+    hostname: postgresql
+    container_name: postgresql
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+     - POSTGRES_PASSWORD=postgres
+     - POSTGRES_USER=postgres
+     - POSTGRES_DB=postgres
+
+  flyway:
+    hostname: flyway
+    container_name: flyway
+    image: flyway/flyway:7.11.1-alpine
+    volumes:
+      - ../.db:/flyway/sql
+    command: -url=jdbc:postgresql://postgresql:5432/postgres -user=postgres -password=postgres -connectRetries=60 migrate
+    depends_on:
+      - postgresql
